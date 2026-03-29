@@ -14,8 +14,10 @@ def preprocess(path, stopwords):
     words = re.findall(r"[a-z]+", text)
 
     clean = []
-    for pos, w in enumerate(words):
+    filtered_pos = 0
+    for w in words:
         if w not in stopwords:
-            clean.append((ps.stem(w), pos))  # (stemmed_word, original_position)
+            clean.append((ps.stem(w), filtered_pos))
+            filtered_pos += 1  # position counts only non-stopwords
 
     return clean

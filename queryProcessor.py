@@ -12,7 +12,6 @@ def process_word(word):
 def process_boolean(query, index, all_docs):
     parts = query.strip().lower().split()
 
-    # Stem non-operator tokens
     processed = []
     for p in parts:
         if p not in ("and", "or", "not"):
@@ -20,15 +19,19 @@ def process_boolean(query, index, all_docs):
         else:
             processed.append(p)
 
-    # Single word query
+    # Single word
     if len(processed) == 1:
         return index.get(processed[0], set())
 
-    # NOT x (single term negation)
+    # Two words no operator → implicit AND  [fixes the error for Hillary Clinton]
+    if len(processed) == 2 and processed[0] != "not":
+        return index.get(processed[0], set()) & index.get(processed[1], set())
+
+    # NOT x
     if len(processed) == 2 and processed[0] == "not":
         return all_docs - index.get(processed[1], set())
 
-    # t1 AND/OR/NOT t2
+    # t1 OP t2
     if len(processed) == 3:
         t1, op, t2 = processed
         s1 = index.get(t1, set())
@@ -40,7 +43,7 @@ def process_boolean(query, index, all_docs):
         if op == "not":
             return s1 - s2
 
-    # t1 OP t2 OP t3 (5 parts)
+    # t1 OP t2 OP t3
     if len(processed) == 5:
         t1, op1, t2, op2, t3 = processed
         s1 = index.get(t1, set())
@@ -63,8 +66,8 @@ def process_boolean(query, index, all_docs):
 
     return set()
 
+
 def process_proximity(query, pos_index):
-    # format: t1 t2 / k
     parts = query.strip().split()
 
     w1 = process_word(parts[0])
@@ -85,7 +88,7 @@ def process_proximity(query, pos_index):
         found = False
         for p1 in docs1[doc]:
             for p2 in docs2[doc]:
-                if abs(p1 - p2) <= k:
+                if abs(p1 - p2) <= k + 1:
                     found = True
                     break
             if found:
